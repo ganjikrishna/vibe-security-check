@@ -45,6 +45,10 @@ python -m unittest discover -s tests -v
 
 The command returns exit code `1` when high or critical findings exist, making it suitable for CI security gates.
 
+## Website experience
+
+The companion `website/` source provides a responsive public-URL preflight interface with security scoring, explainable findings, observed protections, and a recommended fix for every issue. Local file preview uses clearly labeled demonstration data; real URL checks require the included server-side Worker.
+
 ## Example summary
 
 ```text
@@ -72,10 +76,9 @@ This is a focused static preflight tool, not a penetration test, malware scanner
 - Framework-aware rules for Next.js, Flask, Django, and Express
 - Dependency advisory integration using trusted package databases
 - Pull-request annotations
-- Local browser interface with drag-and-drop ZIP scanning
+- Drag-and-drop ZIP scanning in the browser interface
 - Configurable policies for agencies and enterprise teams
 
 ## License
 
 MIT
-
