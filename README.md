@@ -1,6 +1,6 @@
 # Vibe Security Check
 
-**Live product:** https://vibe-security-check.vinuhi5.chatgpt.site
+**Live product:** [vibe-security-check.pages.dev](https://vibe-security-check.pages.dev)
 
 A defensive, explainable security preflight scanner for AI-generated websites and applications.
 
