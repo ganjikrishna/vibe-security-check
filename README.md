@@ -1,5 +1,7 @@
 # Vibe Security Check
 
+![CI](https://github.com/ganjikrishna/vibe-security-check/actions/workflows/ci.yml/badge.svg)
+
 **Live product:** [vibe-security-check.pages.dev](https://vibe-security-check.pages.dev)
 
 A defensive, explainable security preflight scanner for AI-generated websites and applications.
