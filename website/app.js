@@ -1,68 +1,15 @@
-const form = document.querySelector('#scan-form');
-const results = document.querySelector('#results');
-const button = form.querySelector('button');
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  button.disabled = true;
-  button.innerHTML = 'Scanning safely…';
-  results.className = 'results';
-  results.innerHTML = '<div class="result-head"><div class="score loading">···</div><div><span class="risk">Passive check</span><h2>Looking at public protections…</h2><p>One response. No exploit attempts, deep crawl, or intrusive testing.</p></div></div>';
-
-  try {
-    if (window.location.protocol === 'file:') {
-      await new Promise((resolve) => setTimeout(resolve, 650));
-      render(makeDemoReport(form.url.value), true);
-      return;
-    }
-
-    const response = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: form.url.value }),
-    });
-    const report = await response.json();
-    if (!response.ok) throw new Error(report.error || 'The scan could not be completed.');
-    render(report, false);
-  } catch (error) {
-    results.innerHTML = `<div class="error"><strong>We couldn't complete that check</strong><p>${escapeHtml(error.message)}</p><p>The scanner service must be published before it can inspect a live website.</p></div>`;
-  } finally {
-    button.disabled = false;
-    button.innerHTML = 'Run passive check <span>→</span>';
-    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-});
-
-function makeDemoReport(value) {
-  let target = 'https://example.com';
-  try { target = new URL(value).origin; } catch { /* Keep the safe example URL. */ }
-  return {
-    target,
-    status: 200,
-    score: 72,
-    risk: 'medium',
-    findings: [
-      { severity: 'high', title: 'Content Security Policy not observed', detail: 'A strong CSP can reduce cross-site scripting and content-injection risk.', remediation: "Add a Content-Security-Policy header. Start with default-src 'self', then allow only required sources." },
-      { severity: 'medium', title: 'Clickjacking protection not observed', detail: 'Frame restrictions help prevent the site from being embedded in a malicious page.', remediation: "Add frame-ancestors 'none' to Content-Security-Policy, or X-Frame-Options: DENY." },
-      { severity: 'low', title: 'Referrer policy not observed', detail: 'A referrer policy limits information shared when visitors follow links.', remediation: 'Add Referrer-Policy: strict-origin-when-cross-origin.' },
-    ],
-    passed: [
-      { title: 'HTTPS transport' },
-      { title: 'MIME sniffing protection' },
-      { title: 'Secure cookie flags' },
-    ],
-    limitations: 'Illustrative local demo data only. Publish the scanner to perform a real passive response-header review.',
-  };
-}
-
-function render(report, isDemo) {
-  const findings = report.findings.map((item) => `<div class="finding"><div class="sev ${item.severity}">${item.severity}</div><div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p>${item.remediation ? `<div class="fix"><strong>Recommended fix</strong><p>${escapeHtml(item.remediation)}</p></div>` : ''}</div></div>`).join('');
-  const demoNotice = isDemo ? '<div class="passed"><strong>Local demo mode:</strong> These sample results demonstrate the report experience; they are not findings from the URL entered.</div>' : '';
-  results.innerHTML = `${demoNotice}<div class="result-head"><div><div class="score" style="--score:${report.score}%"><span>${report.score}<small>/100</small></span></div><span class="risk">${escapeHtml(report.risk)} risk</span></div><div><h2>${escapeHtml(report.target)}</h2><p><strong>${report.findings.length}</strong> items to review · <strong>${report.passed.length}</strong> observed protections · HTTP ${report.status}</p><p>${escapeHtml(report.limitations)}</p></div></div>${findings || '<div class="passed"><strong>Great start—no findings from these passive checks.</strong> This does not prove the website is secure.</div>'}<div class="passed"><strong>Protections we observed:</strong> ${report.passed.map((item) => escapeHtml(item.title)).join(' · ') || 'None from the configured checks'}</div>`;
-}
-
-function escapeHtml(value) {
-  const node = document.createElement('div');
-  node.textContent = String(value);
-  return node.innerHTML;
-}
+const form=document.querySelector('#scan-form'),results=document.querySelector('#results'),button=form.querySelector('button'),errorBox=document.querySelector('#form-error');
+const STORAGE_KEY='vibe-security-history-v2';
+let currentReport=null,currentFilter='all';
+form.addEventListener('submit',async event=>{event.preventDefault();errorBox.textContent='';let target;try{target=new URL(form.url.value.trim());if(target.protocol!=='https:')throw new Error('Enter a public HTTPS URL.');}catch(error){errorBox.textContent=error.message==='Invalid URL'?'Enter a valid public HTTPS URL.':error.message;return}button.disabled=true;button.innerHTML='Checking safely…';results.className='results';results.innerHTML='<div class="loading-card"><div class="loader"></div><div><b>Reviewing public protections</b><p>One response. No exploits, crawling, authentication, or intrusive testing.</p></div></div>';results.scrollIntoView({behavior:'smooth',block:'start'});try{let report,isDemo=false;if(location.protocol==='file:'){await new Promise(r=>setTimeout(r,600));report=demoReport(target.origin);isDemo=true}else{const response=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:target.toString()})});report=await response.json();if(!response.ok)throw new Error(report.error||'The scan could not be completed.')}currentReport=report;currentFilter='all';renderReport(report,isDemo);if(!isDemo)saveHistory(report)}catch(error){results.innerHTML=`<div class="error"><strong>We couldn't complete that check</strong><p>${escapeHtml(error.message)}</p><p>Confirm the address is a public HTTPS website and try again.</p></div>`}finally{button.disabled=false;button.innerHTML='Run passive check <span>→</span>'}});
+function demoReport(target){return{version:'2.0',target,status:200,score:72,grade:'C',risk:'medium',checkedAt:new Date().toISOString(),durationMs:184,counts:{high:1,medium:2,low:1},findings:[{id:'CSP',severity:'high',category:'browser',title:'Content Security Policy not observed',detail:'A strong CSP can reduce cross-site scripting and content-injection risk.',remediation:"Add a Content-Security-Policy header. Start with default-src 'self', then allow only required sources."},{id:'FRAME',severity:'medium',category:'browser',title:'Clickjacking protection not observed',detail:'Frame restrictions help prevent embedding in malicious pages.',remediation:"Add frame-ancestors 'none' to Content-Security-Policy, or X-Frame-Options: DENY."},{id:'MIME',severity:'medium',category:'browser',title:'MIME sniffing protection not observed',detail:'Browsers may guess unsafe content types.',remediation:'Add X-Content-Type-Options: nosniff to every response.'},{id:'REF',severity:'low',category:'privacy',title:'Referrer policy not observed',detail:'A referrer policy limits information shared when visitors follow links.',remediation:'Add Referrer-Policy: strict-origin-when-cross-origin.'}],passed:[{title:'HTTPS transport',category:'transport'},{title:'Secure cookie flags',category:'cookies'}],limitations:'Illustrative local demo only. Publish the scanner for a real passive response-header review.'}}
+function renderReport(report,isDemo=false){const visible=currentFilter==='all'?report.findings:report.findings.filter(x=>x.severity===currentFilter);const demo=isDemo?'<div class="demo-notice"><b>Local demonstration:</b> These are sample results, not findings from the entered website.</div>':'';results.innerHTML=`${demo}<div class="report-head"><div class="grade grade-${report.grade.toLowerCase()}">${escapeHtml(report.grade)}<small>${report.score}/100</small></div><div class="report-summary"><p class="kicker">PASSIVE SECURITY REPORT</p><h2>${escapeHtml(report.target)}</h2><p>HTTP ${report.status} · ${report.durationMs||0} ms · ${new Date(report.checkedAt||Date.now()).toLocaleString()}</p><div class="count-row"><span class="high">${report.counts?.high??report.findings.filter(x=>x.severity==='high').length} high</span><span class="medium">${report.counts?.medium??report.findings.filter(x=>x.severity==='medium').length} medium</span><span class="low">${report.counts?.low??report.findings.filter(x=>x.severity==='low').length} low</span><span class="passed-count">${report.passed.length} observed protections</span></div></div><div class="report-actions"><button id="download-md" class="secondary">Download fixes</button><button id="download-json" class="tertiary">JSON</button></div></div><div class="report-toolbar"><div><b>Prioritized fix plan</b><span>${report.findings.length} items to review</span></div><div class="severity-filters"><button data-severity="all" class="active">All</button><button data-severity="high">High</button><button data-severity="medium">Medium</button><button data-severity="low">Low</button></div></div><div class="finding-list">${visible.map((item,index)=>findingCard(item,index)).join('')||'<div class="passed"><b>No findings in this view.</b><p>This does not prove the website is secure.</p></div>'}</div><div class="observed"><b>Protections observed</b><div>${report.passed.map(x=>`<span>✓ ${escapeHtml(x.title)}</span>`).join('')||'<span>None from the configured checks</span>'}</div></div><div class="limitations"><b>Scope limitation</b><p>${escapeHtml(report.limitations)}</p></div>`;bindReportActions()}
+function findingCard(item,index){return`<article class="finding"><div class="severity ${escapeHtml(item.severity)}">${escapeHtml(item.severity)}</div><div class="finding-body"><div class="finding-meta"><span>${escapeHtml(item.category||'general')}</span><code>${escapeHtml(item.id||'CHECK')}</code></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p><div class="fix"><b>Recommended fix</b><p>${escapeHtml(item.remediation)}</p><button class="copy-fix" data-index="${index}">Copy fix</button></div></div></article>`}
+function bindReportActions(){document.querySelectorAll('[data-severity]').forEach(x=>x.onclick=()=>{currentFilter=x.dataset.severity;renderReport(currentReport)});document.querySelectorAll('.copy-fix').forEach(x=>x.onclick=async()=>{const item=(currentFilter==='all'?currentReport.findings:currentReport.findings.filter(f=>f.severity===currentFilter))[Number(x.dataset.index)];await navigator.clipboard.writeText(item.remediation);x.textContent='Copied ✓'});document.querySelector('#download-json').onclick=()=>download(`${hostName(currentReport.target)}-security-report.json`,JSON.stringify(currentReport,null,2),'application/json');document.querySelector('#download-md').onclick=()=>download(`${hostName(currentReport.target)}-security-fixes.md`,toMarkdown(currentReport),'text/markdown')}
+function toMarkdown(r){return`# Vibe Security Check\n\n**Target:** ${r.target}\n**Score:** ${r.score}/100 (${r.grade})\n**Risk:** ${r.risk}\n**Checked:** ${r.checkedAt}\n\n## Prioritized fixes\n\n${r.findings.map((x,i)=>`### ${i+1}. [${x.severity.toUpperCase()}] ${x.title}\n\n${x.detail}\n\n**Recommended fix:** ${x.remediation}`).join('\n\n')}\n\n## Observed protections\n\n${r.passed.map(x=>`- ${x.title}`).join('\n')||'- None from configured checks'}\n\n## Limitations\n\n${r.limitations}\n`}
+function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+function saveHistory(report){let history=getHistory();history=[{target:report.target,score:report.score,grade:report.grade,risk:report.risk,checkedAt:report.checkedAt},...history.filter(x=>x.target!==report.target)].slice(0,6);localStorage.setItem(STORAGE_KEY,JSON.stringify(history));renderHistory()}
+function getHistory(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{return[]}}
+function renderHistory(){const history=getHistory(),section=document.querySelector('#history'),list=document.querySelector('#history-list');section.classList.toggle('hidden',!history.length);list.innerHTML=history.map(x=>`<button class="history-card" data-target="${escapeHtml(x.target)}"><span class="mini-grade">${escapeHtml(x.grade)}</span><span><b>${escapeHtml(x.target)}</b><small>${new Date(x.checkedAt).toLocaleString()}</small></span><strong>${x.score}</strong></button>`).join('');list.querySelectorAll('.history-card').forEach(x=>x.onclick=()=>{form.url.value=x.dataset.target;form.scrollIntoView({behavior:'smooth'})})}
+document.querySelector('#clear-history').onclick=()=>{localStorage.removeItem(STORAGE_KEY);renderHistory()};
+function hostName(value){try{return new URL(value).hostname}catch{return'website'}}function escapeHtml(value){const node=document.createElement('div');node.textContent=String(value??'');return node.innerHTML}renderHistory();
