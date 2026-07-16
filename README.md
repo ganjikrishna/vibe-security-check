@@ -1,5 +1,7 @@
 # Vibe Security Check
 
+**Live product:** https://vibe-security-check.vinuhi5.chatgpt.site
+
 A defensive, explainable security preflight scanner for AI-generated websites and applications.
 
 It helps builders using ChatGPT, Gemini, Replit, Base44, and other rapid-development tools catch common security mistakes before deployment—without executing the scanned project.
@@ -47,7 +49,7 @@ The command returns exit code `1` when high or critical findings exist, making i
 
 ## Website experience
 
-The companion `website/` source provides a responsive public-URL preflight interface with security scoring, explainable findings, observed protections, and a recommended fix for every issue. Local file preview uses clearly labeled demonstration data; real URL checks require the included server-side Worker.
+The companion `website/` source provides a responsive public-URL preflight interface with security scoring, explainable findings, observed protections, and a recommended fix for every issue. The hosted product supports severity filters, copyable fixes, Markdown and JSON exports, privacy-respecting local scan history, request throttling, and guarded public-target validation. Local file preview uses clearly labeled demonstration data; real URL checks use the included server-side Worker.
 
 ## Example summary
 
